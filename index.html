@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Planner</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        h1, h3, h5 {
+            font-weight: 500;
+        }
+        .day-container {
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+        }
+        .suggested-thumbnail {
+            width: 100%;
+            height: auto;
+        }
+        .card-img-top {
+            object-fit: cover;
+            height: 200px;
+        }
+        .meal-plan-day {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            text-decoration: none;
+        }
+        .btn-outline-secondary {
+            border-color: #495057;
+        }
+        .btn-outline-secondary:hover, .btn-outline-secondary:focus, .btn-outline-secondary:active {
+            border-color: #495057;
+            color: #495057;
+        }
+        .week-container {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .day-container {
+            flex: 0 0 auto;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+</head>
+<body data-offset="{{ current_week_offset }}">
+    <div class="container">
+        <h1 class="text-center my-5">Weekly Meal Planner</h1>
+        <h3 class="mb-4">Suggested Meal</h3>
+        <div class="card mb-5">
+            <div class="card-body">
+                <h5 class="card-title" id="suggested-meal">{{ meal.strMeal }}</h5>
+                <p><strong>Category:</strong> {{ meal.strCategory }} | <strong>Area:</strong> {{ meal.strArea }} | <strong>Tags:</strong> {{ meal.strTags }}</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('meal_details', meal_id=meal.idMeal) }}" aria-labelledby="suggested-meal">
+                            <img src="{{ meal.strMealThumb }}" alt="Meal thumbnail" class="suggested-thumbnail">
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Ingredients:</strong></p>
+                        <ul>
+                        {% set counter = namespace(ingredient_count=0) %}
+                        {% for i in range(1, 21) %}
+                            {% if meal['strIngredient' ~ i] %}
+                                {% set counter.ingredient_count = counter.ingredient_count + 1 %}
+                                {% if counter.ingredient_count == 12 %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <ul>
+                                {% endif %}
+                                <li>{{ meal['strIngredient' ~ i] }} - {{ meal['strMeasure' ~ i] }}</li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="button-container mt-2">
+                    <button id="accept-btn" class="btn btn-primary mt-2" aria-label="Accept suggested meal">Accept</button>
+                    <button id="reject-btn" class="btn btn-danger mt-2" aria-label="Reject suggested meal">Reject</button>
+                </div>
+            </div>
+        </div>
+    <div class="container">
+        <h3 class="mb-4">Meal Plan:</h3>
+        <div class="week-navigation mb-3">
+            <a href="{{ url_for('index', offset=prev_week_offset) }}" class="btn btn-outline-primary" id="prev-week" aria-label="Previous week">Previous Week</a>
+            <a href="{{ url_for('index', offset=next_week_offset) }}" class="btn btn-outline-primary" id="next-week" aria-label="Next week">Next Week</a>
+        </div>
+        <div class="week-container">
+            <div class="row">
+                {% for day, meal_info in meal_plan_content.items() %}
+                {% if datetime.strptime(day, "%Y-%m-%d").strftime("%A") in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                <div class="card day-container mb-3">
+                    <div class="card-header text-center">
+                        {{ datetime.strptime(day, "%Y-%m-%d").strftime("%A, %B %d").replace(' 0', ' ') }}
+                    </div>
+                {% if meal_info %}
+                <a href="{{ url_for('meal_details', meal_id=meal_info['id']) }}" class="meal-plan-day" aria-labelledby="meal-title-{{ loop.index }}">
+                    <img src="{{ meal_info['meal_image_url'] }}" class="card-img-top" alt="Meal thumbnail">
+                    <div class="card-body text-center">
+                        <h5 class="card-title" id="meal-title-{{ loop.index }}">{{ meal_info['meal_title'] }}</h5>
+                    </div>
+                </a>
+                    <div class="card-footer text-center">
+                        <button class="remove-meal btn btn-danger" data-day="{{ datetime.strptime(day, "%Y-%m-%d").strftime("%A").lower() }}" aria-label="Remove meal">Remove</button>
+                    </div>
+                    {% else %}
+                    <div class="card-body text-center">
+                        <h5 class="card-title">No meal planned</h5>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <a href="{{ url_for('shopping_list') }}" class="btn btn-primary mt-3" aria-label="Generate shopping list">Generate Shopping List</a>
+    </div>
+    </div>
+    <script>
+        let currentWeekOffset = parseInt(document.body.getAttribute('data-offset'));
+        if (isNaN(currentWeekOffset)) {
+            currentWeekOffset = 0;
+        }
+        let mealPlanContent; // Declare the variable here
+
+        function reloadPage() {
+            location.reload();
+        }
+
+        function loadWeek(offsetChange) {
+            currentWeekOffset += offsetChange;
+            window.location.href = `/index?offset=${currentWeekOffset}`;
+        }
+
+        function toggleDaysWithMeals() {
+            mealPlanContent = JSON.parse('{{ meal_plan_content | tojson | safe }}'); // Assign the value here
+            const days = Object.keys(mealPlanContent);
+
+            days.forEach(day => {
+                const dayOfWeek = new Date(day).toLocaleDateString("en-US", { weekday: 'long' }).toLowerCase();
+                if (mealPlanContent[day] === null) {
+                    $(`#${dayOfWeek}-btn`).prop('disabled', false);
+                } else {
+                    $(`#${dayOfWeek}-btn`).prop('disabled', true);
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            toggleDaysWithMeals();
+
+            $("#accept-btn").click(function () {
+                $("#accept-btn, #reject-btn").hide();
+                $(".button-container").append(`
+                    <div class="btn-group mt-2" role="group">
+                        <button id="monday-btn" type="button" class="btn btn-outline-secondary">Monday</button>
+                        <button id="tuesday-btn" type="button" class="btn btn-outline-secondary">Tuesday</button>
+                        <button id="wednesday-btn" type="button" class="btn btn-outline-secondary">Wednesday</button>
+                        <button id="thursday-btn" type="button" class="btn btn-outline-secondary">Thursday</button>
+                        <button id="friday-btn" type="button" class="btn btn-outline-secondary">Friday</button>
+                        <button id="saturday-btn" type="button" class="btn btn-outline-secondary">Saturday</button>
+                        <button id="sunday-btn" type="button" class="btn btn-outline-secondary">Sunday</button>
+                    </div>
+                    <button id="cancel-btn" class="btn btn-warning mt-2">Cancel</button>
+                `);
+
+                toggleDaysWithMeals();
+
+                $("button[id$='-btn']").click(function () {
+                    const dayOfWeek = $(this).text();
+                    const mealId = "{{ meal.idMeal }}";
+                    const day = Object.keys(mealPlanContent).find(date => new Date(date).toLocaleDateString("en-US", { weekday: 'long' }) === dayOfWeek);
+                    // Add the currentWeekOffset in the request
+                    $.get(`/accept_meal?day=${day}&meal_id=${mealId}&offset=${currentWeekOffset}`, reloadPage);
+                });
+
+                $("#cancel-btn").click(function () {
+                    $("#accept-btn, #reject-btn").show();
+                    $(".btn-group, #cancel-btn").remove();
+                });
+            });
+
+            $(".remove-meal").click(function () {
+                const dayOfWeek = $(this).data("day");
+                const day = Object.keys(mealPlanContent).find(date => new Date(date).toLocaleDateString("en-US", { weekday: 'long' }).toLowerCase() === dayOfWeek);
+                // Add the currentWeekOffset in the request
+                $.get(`/remove_meal?day=${day}&offset=${currentWeekOffset}`, reloadPage)
+                    .fail(function() { // Add this block for error handling
+                        console.log("Error while removing meal");
+                });
+            });
+
+            $("#reject-btn").click(reloadPage);
+
+            $("#prev-week").click(function () {
+                loadWeek(-1);
+            });
+
+            $("#next-week").click(function () {
+                loadWeek(1);
+            });
+        });
+    </script>
+
+</body>
+</html>
