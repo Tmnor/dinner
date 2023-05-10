@@ -16,11 +16,6 @@
         h1, h3, h5 {
             font-weight: 500;
         }
-        .day-container {
-            margin-bottom: 20px;
-            border: 1px solid #e9ecef;
-            border-radius: 5px;
-        }
         .suggested-thumbnail {
             width: 100%;
             height: auto;
@@ -51,11 +46,18 @@
             -webkit-overflow-scrolling: touch;
         }
         .day-container {
-            flex: 0 0 auto;
-            margin-right: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            flex: 0 0 calc(100% / 7 - 10px);
+        }
+        .card-header {
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
-</head>
 </head>
 <body data-offset="{{ current_week_offset }}">
     <div class="container">
@@ -108,7 +110,7 @@
                 {% if datetime.strptime(day, "%Y-%m-%d").strftime("%A") in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
                 <div class="card day-container mb-3">
                     <div class="card-header text-center">
-                        {{ datetime.strptime(day, "%Y-%m-%d").strftime("%A, %B %d").replace(' 0', ' ') }}
+                        {{ datetime.strptime(day, "%Y-%m-%d").strftime("%A") }}<br>{{ datetime.strptime(day, "%Y-%m-%d").strftime("%B %d").replace(' 0', ' ') }}
                     </div>
                 {% if meal_info %}
                 <a href="{{ url_for('meal_details', meal_id=meal_info['id']) }}" class="meal-plan-day" aria-labelledby="meal-title-{{ loop.index }}">
