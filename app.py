@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for
 import requests
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
+from units import unit, UnitError
 
 app = Flask(__name__)
 
@@ -121,7 +122,7 @@ def accept_meal():
 @app.route('/remove_meal')
 def remove_meal():
     day = request.args.get('day')
-    meal_plan_entry = MealPlan.query.filter_by(day=day).first()
+    meal_plan_entry = MealPlan.query.filter_by(date=day).first()
     if meal_plan_entry:
         db.session.delete(meal_plan_entry)
     db.session.commit()
@@ -142,12 +143,23 @@ def shopping_list():
         ingredients_list = entry.ingredients.split(", ")
         for ingredient in ingredients_list:
             name, quantity = ingredient.rsplit(" ", 1)
+            if not quantity:
+                continue
             if name in shopping_list:
-                shopping_list[name].append(quantity)
+                try:
+                    shopping_list[name] += unit(quantity)
+                except UnitError:
+                    shopping_list[name] = str(shopping_list[name]) + ' + ' + quantity
             else:
-                shopping_list[name] = [quantity]
+                try:
+                    shopping_list[name] = unit(quantity)
+                except UnitError:
+                    shopping_list[name] = quantity
 
-    return render_template('shopping_list.html', shopping_list=shopping_list)
+    # Convert units back to strings for rendering in the template
+    shopping_list_str = {k: str(v) for k, v in shopping_list.items()}
+
+    return render_template('shopping_list.html', shopping_list=shopping_list_str)
 
 
 if __name__ == '__main__':
