@@ -112,9 +112,9 @@
                     </div>
                 {% if meal_info %}
                 <a href="{{ url_for('meal_details', meal_id=meal_info['id']) }}" class="meal-plan-day" aria-labelledby="meal-title-{{ loop.index }}">
-                    <img src="{{ meal_info['meal_image_url'] }}" class="card-img-top" alt="Meal thumbnail">
+                    <img src="{{ meal_info['image_url'] }}" class="card-img-top" alt="Meal thumbnail">
                     <div class="card-body text-center">
-                        <h5 class="card-title" id="meal-title-{{ loop.index }}">{{ meal_info['meal_title'] }}</h5>
+                        <h5 class="card-title" id="meal-title-{{ loop.index }}">{{ meal_info['title'] }}</h5>
                     </div>
                 </a>
                     <div class="card-footer text-center">
