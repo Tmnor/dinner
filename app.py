@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request, url_for, abort
 import requests
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
-from units import unit, UnitError
+import re
 
 app = Flask(__name__)
 
@@ -31,9 +31,15 @@ class MealPlan(db.Model):
 
 
 def fetch_random_meal():
-    response = requests.get(API_BASE_URL + "random.php")
+    response = requests.get("https://www.themealdb.com/api/json/v1/1/random.php")
+
+    if response.status_code != 200 or response.text.strip() == "":
+        # You can return a default value or handle the error as needed
+        abort(500, description="Error fetching random meal from the API.")
+
     data = response.json()
-    return data['meals'][0]
+    meal = data['meals'][0]
+    return meal
 
 
 def fetch_meal_by_id(meal_id):
@@ -142,19 +148,25 @@ def shopping_list():
     for entry in meal_plan_entries:
         ingredients_list = entry.ingredients.split(", ")
         for ingredient in ingredients_list:
-            name, quantity = ingredient.rsplit(" ", 1)
-            if not quantity:
+            match = re.search(r"([\d\.]+)?\s?([\w]+)?\s(.+)", ingredient)
+            if not match:
                 continue
+            quantity, unit, name = match.groups()
+
+            if not quantity:
+                quantity = "1"
+            quantity_with_unit = f"{quantity} {unit}" if unit else quantity
+
             if name in shopping_list:
                 try:
-                    shopping_list[name] += unit(quantity)
-                except UnitError:
-                    shopping_list[name] = str(shopping_list[name]) + ' + ' + quantity
+                    shopping_list[name] += unit(quantity_with_unit)
+                except Exception:
+                    shopping_list[name] = str(shopping_list[name]) + ' + ' + quantity_with_unit
             else:
                 try:
-                    shopping_list[name] = unit(quantity)
-                except UnitError:
-                    shopping_list[name] = quantity
+                    shopping_list[name] = unit(quantity_with_unit)
+                except Exception:
+                    shopping_list[name] = quantity_with_unit
 
     # Convert units back to strings for rendering in the template
     shopping_list_str = {k: str(v) for k, v in shopping_list.items()}
